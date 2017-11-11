@@ -278,6 +278,10 @@
       write(lout,*) 'INFO>  DOWRITE_DIST      = ', dowrite_dist
       write(lout,*) 'INFO>  NAME_SEL          = ', name_sel
       write(lout,*) 'INFO>  DO_ONESIDE        = ', do_oneside
+      if (do_oneside.and..not.lDefSS) then
+         write(lout,*) 'INFO>  COLL_NAME ONE-SIDE= ', oneSidedCollName
+         write(lout,*) 'INFO>  POSIIVE SIDE      = ', lPosSS
+      endif
       write(lout,*) 'INFO>  DOWRITE_IMPACT    = ', dowrite_impact
       write(lout,*) 'INFO>  DOWRITE_SECONDARY = ', dowrite_secondary
       write(lout,*) 'INFO>  DOWRITE_AMPLITUDE = ', dowrite_amplitude
@@ -2079,8 +2083,25 @@
              enom_gev = myenom*1d-3
 
 !++  Allow primaries to be one-sided, if requested
-          if ((db_name1(icoll)(1:3).eq.'TCP' .or.                       &
-     &db_name1(icoll)(1:3).eq.'COL')                                    &
+!            A.Mereghetti, 2017-11-11
+!            generalise user interface for one-sided collimators
+             onesided=.false.
+             if (do_oneside) then
+                if (lDefSS) then
+                   if ((db_name1(icoll)(1:3).eq.'TCP' .or.              &
+     &                  db_name1(icoll)(1:3).eq.'COL') then             &
+                      onesided=.true.
+                   endif
+                else
+!                  get length of collimator name
+                   do i=1,24
+                      if (oneSidedCollName(i:i).eq.' ') exit
+                   enddo
+                   if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i))then&
+                      onesided=.true.
+                endif
+             endif
+          endif
      &.and. do_oneside) then
             onesided = .true.
           else
