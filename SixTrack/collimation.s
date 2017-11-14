@@ -2089,17 +2089,26 @@
              if (do_oneside) then
                 if (lDefSS) then
                    if ((db_name1(icoll)(1:3).eq.'TCP' .or.              &
-     &                  db_name1(icoll)(1:3).eq.'COL')                  &
-                   then
-                   onesided=.true.
+     &                  db_name1(icoll)(1:3).eq.'COL') then             &
+
+                      onesided=.true.
+                   end if
                 else
-! get length of collimator name
+!                  get length of collimator name
                    do i=1,24
                       if (oneSidedCollName(i:i).eq.' ') exit
                    enddo
                    if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i).or.
                       db_name2(icoll)(1:i).eq.oneSidedCollName(1:i))then&
                       onesided=.true.
+                   else
+                      write(lout,*) ""
+                      write(lout,*) "Could not find name of single-side"
+                      write(lout,*) "   collimator, requested by user"
+                      write(lout,*) "   in fort.3, in colliamtor db:"
+                      write(lout,*) "   '"//oneSidedCollName//"'"
+                      write(lout,*) ""
+                      call prror(-1)
                    endif
                 endif
              endif

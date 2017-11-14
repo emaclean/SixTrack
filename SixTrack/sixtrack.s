@@ -15705,7 +15705,7 @@ cc2008
 +if .not.fio
       if(iclr.eq.10) read(ch1,*) do_select,do_nominal,                  &
 +ei
-     &rnd_seed,dowrite_dist,name_sel,oneSidedCollName,                  &
+     &rnd_seed,dowrite_dist,name_sel,do_oneside,oneSidedCollName,       &
      &dowrite_impact,dowrite_secondary,dowrite_amplitude
 !     by default: no one-sided collimation      
       do_oneside=.FALSE.
@@ -15729,20 +15729,20 @@ cc2008
 !              name of collimator + positive side by default
                exit
             endif
-            if (oneSidedCollName(i:i).ne.' '.and.
-     &          oneSidedCollName(i:i).ne.'_') then
-               write(lout,*) ""
-               write(lout,*) "Could not correctly parse trigger of"
-               write(lout,*) "   single-sided collimation in fort.3:"
-               write(lout,*) "   ",oneSidedCollName
-               write(lout,*) ""
-               call prror(-1)
-            else
-               do j=i,24
-                  oneSidedCollName(j:j)=' '
-               enddo
-            endif
          enddo
+         if (oneSidedCollName(i:i).ne.' '.and.
+     &       oneSidedCollName(i:i).ne.'_') then
+            write(lout,*) ""
+            write(lout,*) "Could not correctly parse trigger of"
+            write(lout,*) "   single-sided collimation in fort.3:"
+            write(lout,*) "   '"//oneSidedCollName//"'"
+            write(lout,*) ""
+            call prror(-1)
+         else
+            do j=i,24
+               oneSidedCollName(j:j)=' '
+            enddo
+         endif
       endif
 +if fio
       if(iclr.eq.11) read(ch1,*,round='nearest')                        &
