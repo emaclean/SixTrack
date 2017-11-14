@@ -34,7 +34,7 @@
       integer i,ix,j,jb,jj,jx,kpz,kzz,napx0,nbeaux,nmz,nthinerr
       double precision benkcc,cbxb,cbzb,cikveb,crkveb,crxb,crzb,r0,r000,&
      &r0a,r2b,rb,rho2b,rkb,tkb,xbb,xrb,zbb,zrb
-      logical lopen
+      logical lopen,lfound
 +ca parpro
 +ca parnum
 +ca common
@@ -500,6 +500,44 @@
       g4_physics = 0
       call g4_collimation_init(e0, rnd_seed, g4_ecut, g4_physics)
 +ei
+!     get single-sided collimators
+      if(do_oneside)then
+         if(.not.lDefSS)then
+!           the user has specified the name of the collimator
+!           . get length of collimator name
+            do i=1,24
+               if (oneSidedCollName(i:i).eq.' ') exit
+            enddo
+!           . search specified names in coll_db, to set angle
+!             and verify that the collimator(s) specified by the user
+!             exist(s)    
+            lfound=.false.
+            do j = 1, db_ncoll
+               if(db_name1(j)(1:i).eq.oneSidedCollName(1:i).or.
+     &            db_name2(j)(1:i).eq.oneSidedCollName(1:i))then
+                  lfound=.true.
+                  write(lout,*)"--> single-sided collimator:",
+     &                          db_name1(j)(1:i)
+                  if(.not.lPosSS)then
+!                    increase tilt angle by 180deg, as in specs
+!                       of single-sided collimators
+                     db_rotation(j)=db_rotation(j)+pi
+                     write(lout,*)"   --> negative jaw!"
+                  endif
+               endif
+            enddo
+            if (.not.lfound) then
+               write(lout,*)""
+               write(lout,*)"Could not find name of single-sided"
+               write(lout,*)"   collimator(s), requested by user"
+               write(lout,*)"   in fort.3, in colliamtor db:"
+               write(lout,*)"   '"//oneSidedCollName//"'"
+               write(lout,*)""
+               call prror(-1)
+            endif
+         endif
+      endif
+      
       end
 
 !>
@@ -2106,6 +2144,7 @@
                       write(lout,*)"   collimator(s), requested by user"
                       write(lout,*)"   in fort.3, in colliamtor db:"
                       write(lout,*)"   '"//oneSidedCollName//"'"
+                      write(lout,*)"BTW: it should never happen here..."
                       write(lout,*)""
                       call prror(-1)
                    endif
