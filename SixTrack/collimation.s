@@ -2089,24 +2089,20 @@
              if (do_oneside) then
                 if (lDefSS) then
                    if ((db_name1(icoll)(1:3).eq.'TCP' .or.              &
-     &                  db_name1(icoll)(1:3).eq.'COL') then             &
-                      onesided=.true.
-                   endif
+     &                  db_name1(icoll)(1:3).eq.'COL')                  &
+                   then
+                   onesided=.true.
                 else
-!                  get length of collimator name
+! get length of collimator name
                    do i=1,24
                       if (oneSidedCollName(i:i).eq.' ') exit
                    enddo
-                   if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i))then&
+                   if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i).or.
+                      db_name2(icoll)(1:i).eq.oneSidedCollName(1:i))then&
                       onesided=.true.
+                   endif
                 endif
              endif
-          endif
-     &.and. do_oneside) then
-            onesided = .true.
-          else
-            onesided = .false.
-          endif
 
 
 !GRD HERE IS THE MAJOR CHANGE TO THE CODE: IN ORDER TO TRACK PROPERLY THE
