@@ -1931,6 +1931,41 @@
 !GRD-------------------------------------------------------------------
 
 
+!++  Allow primaries to be one-sided, if requested
+!            A.Mereghetti, 2017-11-11
+!            generalise user interface for one-sided collimators
+             onesided=.false.
+             if (do_oneside) then
+                if (lDefSS) then
+                   if (db_name1(icoll)(1:3).eq.'TCP' .or.               &
+     &                 db_name1(icoll)(1:3).eq.'COL') then
+                      onesided=.true.
+                   end if
+                else
+!                  get length of collimator name
+                   do i=1,24
+                      if (oneSidedCollName(i:i).eq.' ') exit
+                   enddo
+                   i=i-1
+                   if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i).or.
+     &                db_name2(icoll)(1:i).eq.oneSidedCollName(1:i))then
+                      onesided=.true.
+                   end if
+                endif
+             endif
+             
+!GRD-SR, 09-02-2006
+!Force the treatment of the TCDQ equipment as a onsided collimator.
+!Both for Beam 1 and Beam 2, the TCDQ is at positive x side.
+!              if(db_name1(icoll)(1:4).eq.'TCDQ' ) onesided = .true.
+! to treat all collimators onesided 
+! -> only for worst case TCDQ studies
+               if(db_name1(icoll)(1:4).eq.'TCDQ') onesided = .true.
+               if(db_name1(icoll)(1:5).eq.'TCXRP') onesided = .true.
+!GRD-SR
+
+
+
 ! RB: addition matched halo sampled directly on the TCP using pencil beam flag
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           if ((iturn.eq.1).and.(ipencil.eq.icoll).and.
@@ -2057,7 +2092,7 @@
              call makedis_coll(napx,myalphax,myalphay, mybetax, mybetay,
      &            myemitx0_collgap, myemity0_collgap,
      &            myenom, mynex2, mdex, myney2,mdey,
-     &            myx, myxp, myy, myyp, myp, mys)
+     &            myx, myxp, myy, myyp, myp, mys, onesided, lPosSS )
              
              do j = 1, napx
                 xv(1,j)  = 1d3*myx(j)  + torbx(ie) 
@@ -2121,30 +2156,6 @@
 !++  Do the collimation tracking
              enom_gev = myenom*1d-3
 
-!++  Allow primaries to be one-sided, if requested
-!            A.Mereghetti, 2017-11-11
-!            generalise user interface for one-sided collimators
-             onesided=.false.
-             if (do_oneside) then
-                if (lDefSS) then
-                   if (db_name1(icoll)(1:3).eq.'TCP' .or.               &
-     &                 db_name1(icoll)(1:3).eq.'COL') then
-                      onesided=.true.
-                   end if
-                else
-!                  get length of collimator name
-                   do i=1,24
-                      if (oneSidedCollName(i:i).eq.' ') exit
-                   enddo
-                   i=i-1
-                   if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i).or.
-     &                db_name2(icoll)(1:i).eq.oneSidedCollName(1:i))then
-                      onesided=.true.
-                   end if
-                endif
-             endif
-
-
 !GRD HERE IS THE MAJOR CHANGE TO THE CODE: IN ORDER TO TRACK PROPERLY THE
 !GRD SPECIAL RHIC PRIMARY COLLIMATOR, IMPLEMENTATION OF A DEDICATED ROUTINE
           if (found) then
@@ -2162,16 +2173,6 @@
 !GRD let's also add the FLUKA possibility
      &              flukaname)
             else
-
-!GRD-SR, 09-02-2006
-!Force the treatment of the TCDQ equipment as a onsided collimator.
-!Both for Beam 1 and Beam 2, the TCDQ is at positive x side.
-!              if(db_name1(icoll)(1:4).eq.'TCDQ' ) onesided = .true.
-! to treat all collimators onesided 
-! -> only for worst case TCDQ studies
-               if(db_name1(icoll)(1:4).eq.'TCDQ') onesided = .true.
-               if(db_name1(icoll)(1:5).eq.'TCXRP') onesided = .true.
-!GRD-SR
 
 !==> SLICE here is possible
 !
@@ -7310,9 +7311,9 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
 
 !     Treat as a pencil beam in main routine. 
 
-      subroutine makedis_coll(mynp,myalphax, myalphay, mybetax, mybetay, &
+      subroutine makedis_coll(mynp,myalphax, myalphay, mybetax, mybetay,&
      &     myemitx0, myemity0, myenom, mynex, mdex, myney, mdey,        &
-     &     myx, myxp, myy, myyp, myp, mys)
+     &     myx, myxp, myy, myyp, myp, mys, onesided, lPosSS )
  
       implicit none
 +ca crcoall
@@ -7320,6 +7321,7 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
 +ca dbmkdist
 
       double precision pi, iix, iiy, phix,phiy,cutoff
+      logical onesided, lPosSS
       
       save
 !
@@ -7348,7 +7350,15 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
  887        continue
             myemitx = myemitx0*(mynex+(dble(rndm4())*mdex))**2  
             xsigmax = sqrt(mybetax*myemitx)
-            myx(j)   = xsigmax * sin((2d0*pi)*dble(rndm4()))       
+            if ( onesided ) then
+               if ( lPosSS ) then
+                  myx(j)   = xsigmax * sin( pi*dble(rndm4()))
+               else
+                  myx(j)   = xsigmax * sin(-pi*dble(rndm4()))
+               endif
+            else
+               myx(j)   = xsigmax * sin((2d0*pi)*dble(rndm4()))
+            endif
             if (abs(myx(j)).lt.cutoff) goto 887
             if (rndm4().gt.0.5) then
               myxp(j) = sqrt(myemitx/mybetax-myx(j)**2/mybetax**2)-     &
@@ -7367,7 +7377,15 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
  886        continue
             myemity = myemity0*(myney+(dble(rndm4())*mdey))**2  
             ysigmay = sqrt(mybetay*myemity)
-            myy(j)   = ysigmay * sin((2d0*pi)*dble(rndm4()))              
+            if ( onesided ) then
+               if ( lPosSS ) then
+                  myy(j)   = ysigmay * sin( pi*dble(rndm4()))
+               else
+                  myy(j)   = ysigmay * sin(-pi*dble(rndm4()))
+               endif
+            else
+               myy(j)   = ysigmay * sin((2d0*pi)*dble(rndm4()))
+            endif
             if (abs(myy(j)).lt.cutoff) goto 886
             if (rndm4().gt.0.5) then
               myyp(j) = sqrt(myemity/mybetay-myy(j)**2/mybetay**2)-     & 
