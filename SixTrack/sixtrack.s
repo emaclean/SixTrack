@@ -670,6 +670,11 @@
       character*16 castordir
       character*80 filename_dis
 
+!     A.Mereghetti, 2017-11-11
+!     generalise user interface for one-sided collimators
+      character*24 oneSidedCollName
+      logical lDefSS,lPosSS
+      
       common /grd/ myenom,mynex,mdex,myney,mdey,                        &
      &nsig_tcp3,nsig_tcsg3,nsig_tcsm3,nsig_tcla3,                       &
      &nsig_tcp7,nsig_tcsg7,nsig_tcsm7,nsig_tcla7,nsig_tclp,nsig_tcli,   &
@@ -692,11 +697,10 @@
      &do_coll,                                                          &
      &do_select,do_nominal,dowrite_dist,do_oneside,dowrite_impact,      &
      &dowrite_secondary,dowrite_amplitude,radial,systilt_antisymm,      &
-     &dowritetracks,cern,do_nsig,do_mingap
+     &dowritetracks,cern,do_nsig,do_mingap,                             &
 !     A.Mereghetti, 2017-11-11
 !     generalise user interface for one-sided collimators
-      character*24 oneSidedCollName
-      logical lDefSS,lPosSS
+     &oneSidedCollName,lDefSS,lPosSS
 
 
 !-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
@@ -15576,9 +15580,6 @@ cc2008
 +ei ! END +if .not.collimat
 
 +if collimat
-      do i=1,24
-         oneSidedCollName(i:i)=' '
-      enddo
 !APRIL2005
 +if fio
       if(iclr.eq.1) read(ch1,*,round='nearest')                         &
@@ -15698,50 +15699,57 @@ cc2008
       if(iclr.eq.9) read(ch1,*)
      & emitnx0_dist,emitny0_dist,emitnx0_collgap,emitny0_collgap
 +ei
+      if(iclr.eq.10) then
+         do i=1,24
+            oneSidedCollName(i:i)=' '
+         enddo
 +if fio
-      if(iclr.eq.10) read(ch1,*,round='nearest')                        &
-     & do_select,do_nominal,                  &
+         read(ch1,*,round='nearest')do_select,do_nominal,               &
 +ei
 +if .not.fio
-      if(iclr.eq.10) read(ch1,*) do_select,do_nominal,                  &
+         read(ch1,*) do_select,do_nominal,                              &
 +ei
-     &rnd_seed,dowrite_dist,name_sel,do_oneside,oneSidedCollName,       &
+     &rnd_seed,dowrite_dist,name_sel,oneSidedCollName,                  &
      &dowrite_impact,dowrite_secondary,dowrite_amplitude
-!     by default: no one-sided collimation      
-      do_oneside=.FALSE.
-      lDefSS=.TRUE.
-      lPosSS=.TRUE.
-      if (oneSidedCollName(1:6).eq.'.TRUE.') then
-         do_oneside=.TRUE.
-      elseif (oneSidedCollName(1:7).ne.'.FALSE.') then
-!        the user has input the name of a collimator
-         do_oneside=.TRUE.
-         lDefSS=.FALSE.
-         do i=1,21
-            if (oneSidedCollName(i:i+2).eq.'__P' ) then
-!              name of collimator + request of positive side
-               exit
-            elseif (oneSidedCollName(i:i+2).eq.'__N' ) then
-!              name of collimator + request of negative side
-               lPosSS=.FALSE.
-               exit
-            elseif (oneSidedCollName(i:i).eq.' ' ) then
-!              name of collimator + positive side by default
-               exit
-            endif
-         enddo
-         if (oneSidedCollName(i:i).ne.' '.and.
-     &       oneSidedCollName(i:i).ne.'_') then
-            write(lout,*) ""
-            write(lout,*) "Could not correctly parse trigger of"
-            write(lout,*) "   single-sided collimation in fort.3:"
-            write(lout,*) "   '"//oneSidedCollName//"'"
-            write(lout,*) ""
-            call prror(-1)
+!        by default: no one-sided collimation      
+         do_oneside=.FALSE.
+         lDefSS=.TRUE.
+         lPosSS=.TRUE.
+         if (oneSidedCollName(1:6).eq.'.TRUE.') then
+            do_oneside=.TRUE.
+            oneSidedCollName(1:6)='      '
+         elseif (oneSidedCollName(1:7).eq.'.FALSE.') then
+            oneSidedCollName(1:7)='       '
          else
-            do j=i,24
-               oneSidedCollName(j:j)=' '
+!           the user has input the name of a collimator
+            do_oneside=.TRUE.
+            lDefSS=.FALSE.
+            do i=1,21
+               if (oneSidedCollName(i:i+2).eq.'__P' ) then
+!                 name of collimator + request of positive side
+                  exit
+               elseif (oneSidedCollName(i:i+2).eq.'__N' ) then
+!                 name of collimator + request of negative side
+                  lPosSS=.FALSE.
+                  exit
+               elseif (oneSidedCollName(i:i).eq.' ' ) then
+!                 name of collimator + positive side by default
+                  exit
+               endif
             enddo
+            if (oneSidedCollName(i:i).ne.' '.and.
+     &          oneSidedCollName(i:i).ne.'_') then
+               write(lout,*)""
+               write(lout,*)"Could not correctly parse trigger of"
+               write(lout,*)"   single-sided collimation in fort.3:"
+               write(lout,*)"   '"//oneSidedCollName//"'"
+               write(lout,*)""
+               call prror(-1)
+            else
+               do j=i,24
+                  oneSidedCollName(j:j)=' '
+               enddo
+            endif
          endif
       endif
 +if fio
@@ -17850,7 +17858,7 @@ cc2008
       !Check that the number of particles is OK
       if(((2*mmac)*imc)*napx.gt.npart) call prror(54)                    !hr05
 +ei
-
+      
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
       return

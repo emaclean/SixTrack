@@ -508,6 +508,7 @@
             do i=1,24
                if (oneSidedCollName(i:i).eq.' ') exit
             enddo
+            i=i-1
 !           . search specified names in coll_db, to set angle
 !             and verify that the collimator(s) specified by the user
 !             exist(s)    
@@ -516,13 +517,13 @@
                if(db_name1(j)(1:i).eq.oneSidedCollName(1:i).or.
      &            db_name2(j)(1:i).eq.oneSidedCollName(1:i))then
                   lfound=.true.
-                  write(lout,*)"--> single-sided collimator:",
+                  write(lout,*)"--> one-sided collimator: ",
      &                          db_name1(j)(1:i)
                   if(.not.lPosSS)then
 !                    increase tilt angle by 180deg, as in specs
 !                       of single-sided collimators
                      db_rotation(j)=db_rotation(j)+pi
-                     write(lout,*)"   --> negative jaw!"
+                     write(lout,*)"    --> negative jaw!"
                   endif
                endif
             enddo
@@ -530,8 +531,8 @@
                write(lout,*)""
                write(lout,*)"Could not find name of single-sided"
                write(lout,*)"   collimator(s), requested by user"
-               write(lout,*)"   in fort.3, in colliamtor db:"
-               write(lout,*)"   '"//oneSidedCollName//"'"
+               write(lout,*)"   in fort.3, in collimator db:"
+               write(lout,*)"   '"//oneSidedCollName(1:i)//"'"
                write(lout,*)""
                call prror(-1)
             endif
@@ -2135,19 +2136,11 @@
                    do i=1,24
                       if (oneSidedCollName(i:i).eq.' ') exit
                    enddo
+                   i=i-1
                    if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i).or.
      &                db_name2(icoll)(1:i).eq.oneSidedCollName(1:i))then
                       onesided=.true.
-                   else
-                      write(lout,*)""
-                      write(lout,*)"Could not find name of single-sided"
-                      write(lout,*)"   collimator(s), requested by user"
-                      write(lout,*)"   in fort.3, in colliamtor db:"
-                      write(lout,*)"   '"//oneSidedCollName//"'"
-                      write(lout,*)"BTW: it should never happen here..."
-                      write(lout,*)""
-                      call prror(-1)
-                   endif
+                   end if
                 endif
              endif
 
@@ -4477,8 +4470,7 @@
 !++  For one-sided collimators consider only positive X. For negative
 !++  X jump to the next particle
 !
-          if ((onesided .and. x.lt.0d0).and.
-     &         ((icoll.ne.ipencil) .or. (iturn.ne.1))) goto 777 ! RB: adding exception from goto if it's 
+          if (onesided .and. x.lt.0d0) goto 777
 !
 !++  Now mirror at the horizontal axis for negative X offset
 !
