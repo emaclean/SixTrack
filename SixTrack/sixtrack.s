@@ -985,12 +985,16 @@
 !
       character*16 db_name1(max_ncoll),db_name2(max_ncoll)
       character*4 db_material(max_ncoll)
+      logical     db_onesided(max_ncoll),db_lPosSS(max_ncoll)
 !APRIL2005
+!     A.Mereghetti, 2017-12-11
+!     collimators can be flagged as one-sided directly in DollDB file
       double precision db_nsig(max_ncoll),db_length(max_ncoll),         &
      &db_offset(max_ncoll),db_rotation(max_ncoll),                      &
      &db_bx(max_ncoll),db_by(max_ncoll),db_tilt(max_ncoll,2)
       common /colldatabase/ db_nsig,db_length,db_rotation,db_offset,    &
-     &db_bx,db_by,db_tilt,db_name1,db_name2,db_material,db_ncoll
+     &db_bx,db_by,db_tilt,db_name1,db_name2,db_material,db_ncoll,       &
+     &db_onesided,db_lPosSS
 !      double precision db_length(max_ncoll),db_rotation(max_ncoll),     &
 !     &db_offset(max_ncoll),                                             &
 !     &db_bx(max_ncoll),db_by(max_ncoll),db_tilt(max_ncoll,2)

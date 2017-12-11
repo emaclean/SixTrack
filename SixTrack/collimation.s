@@ -500,7 +500,20 @@
       g4_physics = 0
       call g4_collimation_init(e0, rnd_seed, g4_ecut, g4_physics)
 +ei
-!     verify existence of single-sided collimators from fort.3
+!     verify existence of one-sided collimators from CollDB
+      do j = 1, db_ncoll
+         if(db_onesided(j))then
+            write(lout,*)"--> one-sided collimator: ",db_name1(j)
+            if(.not.db_lPosSS(j))then
+!              increase tilt angle by 180deg, as in specs
+!                of one-sided collimators
+               db_rotation(j)=db_rotation(j)+pi
+               write(lout,*)"    --> negative jaw!",db_rotation(j)
+            endif
+         endif
+      enddo
+      
+!     verify existence of one-sided collimators from fort.3
       if(do_oneside)then
          if(.not.lDefSS)then
 !           the user has specified the name of the collimator
@@ -522,8 +535,12 @@
                   if(.not.lPosSS)then
 !                    increase tilt angle by 180deg, as in specs
 !                       of single-sided collimators
-                     db_rotation(j)=db_rotation(j)+pi
-                     write(lout,*)"    --> negative jaw!"
+!                    ...but only if it was not specified already in
+!                       CollDB as negative
+                     if(.not.db_onesided(j).or.db_lPosSS(j))then
+                        db_rotation(j)=db_rotation(j)+pi
+                        write(lout,*)"    --> negative jaw!",db_rotation(j)
+                     endif
                   endif
                endif
             enddo
@@ -1556,6 +1573,7 @@
 +ei
 
       double precision c5m4,stracki
+      logical lPosSS_loc
 
 +if g4collimat
       integer g4_lostc
@@ -1642,7 +1660,7 @@
             write(40,*) tbetay(ie)
 !
             write(outlun,*) ' '
-            write(outlun,*)   'Collimator information: '
+            write(outlun,*) 'Collimator information: '
             write(outlun,*) ' '
             write(outlun,*) 'Name:                '                     &
      &, db_name1(icoll)(1:11)
@@ -1662,6 +1680,8 @@
      &,tbetax(ie)
             write(outlun,*) 'Optics beta y [m]:   '                     &
      &,tbetay(ie)
+            write(outlun,*) 'Onesided - positive: '                     &
+     &,db_onesided(icoll),db_lPosSS(icoll)
 !          else
 !            write(lout,*) 'C WRITE', iturn,firstrun
           endif
@@ -1930,47 +1950,40 @@
       endif
 !GRD-------------------------------------------------------------------
 
-
 !++  Allow primaries to be one-sided, if requested
 !            A.Mereghetti, 2017-11-11
-!            generalise user interface for one-sided collimators in fort.3
-             onesided=.false.
+!            revised one-sided collimation, including flagging in CollDB
+             onesided=db_onesided(icoll)
+             lPosSS_loc=db_lPosSS(icoll)
+             
+!            generalise user interface for one-sided collimators in fort.3,
+!               ruling over settings in DB
              if (do_oneside) then
                 if (lDefSS) then
                    if (db_name1(icoll)(1:3).eq.'TCP' .or.               &
      &                 db_name1(icoll)(1:3).eq.'COL') then
                       onesided=.true.
-                   end if
+                      lPosSS_loc=lPosSS
+                   endif
                 else
 !                  get length of collimator name
                    do i=1,24
                       if (oneSidedCollName(i:i).eq.' ') exit
                    enddo
                    i=i-1
-                   if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i).or.
+                   if(db_name1(icoll)(1:i).eq.oneSidedCollName(1:i).or. &
      &                db_name2(icoll)(1:i).eq.oneSidedCollName(1:i))then
                       onesided=.true.
-                   end if
+                      lPosSS_loc=lPosSS
+                   endif
                 endif
              endif
              
-!GRD-SR, 09-02-2006
-!Force the treatment of the TCDQ equipment as a onsided collimator.
-!Both for Beam 1 and Beam 2, the TCDQ is at positive x side.
-!              if(db_name1(icoll)(1:4).eq.'TCDQ' ) onesided = .true.
-! to treat all collimators onesided 
-! -> only for worst case TCDQ studies
-             if(db_name1(icoll)(1:4).eq.'TCDQ') onesided = .true.
-             if(db_name1(icoll)(1:5).eq.'TCXRP') onesided = .true.
-!GRD-SR
-!            A.Mereghetti, 2017-12-11
 !            in case of one-sided collimator requested via
-!               COLL block in fort.3, then pencil beam is single
-!               sided too
-             lPencOneSided=.false.
-             if (onesided.and.do_oneside) lPencOneSided=.true.
-
-
+!               COLL block in fort.3, then pencil beam is forced to be
+!               one-sided too
+             lPencOneSided=onesided.and.do_oneside
+             
 ! RB: addition matched halo sampled directly on the TCP using pencil beam flag
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           if ((iturn.eq.1).and.(ipencil.eq.icoll).and.
@@ -2097,7 +2110,7 @@
              call makedis_coll(napx,myalphax,myalphay, mybetax, mybetay,
      &            myemitx0_collgap, myemity0_collgap,
      &            myenom, mynex2, mdex, myney2,mdey,
-     &            myx, myxp, myy, myyp, myp, mys, onesided, lPosSS,
+     &            myx, myxp, myy, myyp, myp, mys, onesided, lPosSS_loc,
      &            lPencOneSided )
              
              do j = 1, napx
@@ -9166,9 +9179,11 @@ c$$$     &           myalphay * cos(phiy))
 +ca collpara
 +ca database
 +ca dbcommon
++ca comgetfields
 !
 
       logical lopen
+      character*132 tmpLine
 
       save
 !
@@ -9194,7 +9209,7 @@ c$$$     &           myalphay * cos(phiy))
 !
 !      write(*,*) 'inside collimator database'
 !      I = 0
-      read(53,*)
+      read(53,*) ! skip first line - comment
       read(53,*,iostat=ios) db_ncoll
       write(lout,*) 'number of collimators = ',db_ncoll
 !     write(*,*) 'ios = ',ios
@@ -9206,12 +9221,20 @@ c$$$     &           myalphay * cos(phiy))
          write(lout,*) 'ERR> db_ncoll > max_ncoll '
          call prror(-1)
       endif
+      read(53,*) ! skip third line - comment
 !
       do j=1,db_ncoll
-      read(53,*)
 !GRD
 !GRD ALLOW TO RECOGNIZE BOTH CAPITAL AND NORMAL LETTERS
 !GRD
+!       A.Mereghetti, 2017-12-11
+!       initialise temporary string
+        do i=1,132
+           tmpLine(i:i)=' '
+        enddo
+!       initialise one-sided vars
+        db_onesided(j)=.false.
+        db_lPosSS(j)=.true.
         read(53,*,iostat=ios) db_name1(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
@@ -9268,6 +9291,49 @@ c$$$     &           myalphay * cos(phiy))
         if (ios.ne.0) then
           write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
+       endif
+       
+!GRD-SR, 09-02-2006
+!Force the treatment of the TCDQ equipment as a onsided collimator.
+!Both for Beam 1 and Beam 2, the TCDQ is at positive x side.
+!              if(db_name1(icoll)(1:4).eq.'TCDQ' ) onesided = .true.
+! to treat all collimators onesided 
+! -> only for worst case TCDQ studies
+       if(db_name1(icoll)(1:4).eq.'TCDQ'.or. &
+     &    db_name1(icoll)(1:5).eq.'TCXRP') then
+          db_onesided(j)=.true.
+          db_lPosSS(j)=.true.
+       endif
+!GRD-SR
+             
+!       A.Mereghetti, 2017-12-11
+!       read new DB lines, structured as: ^keyword: value
+        read(53,*,iostat=ios) tmpLine
+        if (ios.ne.0) then
+           write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+           write(outlun,*) 'ERR>  Problem with line: ',tmpLine
+           call prror(-1)
+        endif
+!       A.Mereghetti, 2017-12-11
+!       read one-sided collimator seting
+        if(tmpLine(1:7).eq.'SINGLE:') then
+           call getfields_split( tmpLine, getfields_fields, getfields_lfields,
+     &          getfields_nfields, getfields_lerr )
+           if ( getfields_lerr ) then
+              write(outlun,*) 'ERR>  Problem with line: ',tmpLine
+              call prror(-1)
+           endif
+           db_onesided(j)=.true.
+           if ( getfields_nfields.eq.1 ) then
+              db_lPosSS(j)=.true.
+           elseif (getfields_fields(2)(1:3).eq.'POS') then
+              db_lPosSS(j)=.true.
+           elseif (getfields_fields(2)(1:3).eq.'NEG') then
+              db_lPosSS(j)=.false.
+           else
+              write(outlun,*) 'ERR>  Problem with line: ',tmpLine
+              call prror(-1)
+           endif
         endif
       enddo
 !
