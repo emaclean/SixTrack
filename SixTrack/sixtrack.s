@@ -872,7 +872,7 @@
 !-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 !
 +cd dbcolcom
-      logical firstcoll,found,onesided
+      logical firstcoll,found,onesided,lPencOneSided
       integer rnd_lux,rnd_k1,rnd_k2
 
       integer myix,myktrack
@@ -15711,7 +15711,7 @@ cc2008
 +ei
      &rnd_seed,dowrite_dist,name_sel,oneSidedCollName,                  &
      &dowrite_impact,dowrite_secondary,dowrite_amplitude
-!        by default: no one-sided collimation      
+!        by default: no one-sided collimation
          do_oneside=.FALSE.
          lDefSS=.TRUE.
          lPosSS=.TRUE.

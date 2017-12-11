@@ -500,7 +500,7 @@
       g4_physics = 0
       call g4_collimation_init(e0, rnd_seed, g4_ecut, g4_physics)
 +ei
-!     get single-sided collimators
+!     verify existence of single-sided collimators from fort.3
       if(do_oneside)then
          if(.not.lDefSS)then
 !           the user has specified the name of the collimator
@@ -1933,7 +1933,7 @@
 
 !++  Allow primaries to be one-sided, if requested
 !            A.Mereghetti, 2017-11-11
-!            generalise user interface for one-sided collimators
+!            generalise user interface for one-sided collimators in fort.3
              onesided=.false.
              if (do_oneside) then
                 if (lDefSS) then
@@ -1960,10 +1960,15 @@
 !              if(db_name1(icoll)(1:4).eq.'TCDQ' ) onesided = .true.
 ! to treat all collimators onesided 
 ! -> only for worst case TCDQ studies
-               if(db_name1(icoll)(1:4).eq.'TCDQ') onesided = .true.
-               if(db_name1(icoll)(1:5).eq.'TCXRP') onesided = .true.
+             if(db_name1(icoll)(1:4).eq.'TCDQ') onesided = .true.
+             if(db_name1(icoll)(1:5).eq.'TCXRP') onesided = .true.
 !GRD-SR
-
+!            A.Mereghetti, 2017-12-11
+!            in case of one-sided collimator requested via
+!               COLL block in fort.3, then pencil beam is single
+!               sided too
+             lPencOneSided=.false.
+             if (onesided.and.do_oneside) lPencOneSided=.true.
 
 
 ! RB: addition matched halo sampled directly on the TCP using pencil beam flag
@@ -2092,7 +2097,8 @@
              call makedis_coll(napx,myalphax,myalphay, mybetax, mybetay,
      &            myemitx0_collgap, myemity0_collgap,
      &            myenom, mynex2, mdex, myney2,mdey,
-     &            myx, myxp, myy, myyp, myp, mys, onesided, lPosSS )
+     &            myx, myxp, myy, myyp, myp, mys, onesided, lPosSS,
+     &            lPencOneSided )
              
              do j = 1, napx
                 xv(1,j)  = 1d3*myx(j)  + torbx(ie) 
@@ -7313,7 +7319,7 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
 
       subroutine makedis_coll(mynp,myalphax, myalphay, mybetax, mybetay,&
      &     myemitx0, myemity0, myenom, mynex, mdex, myney, mdey,        &
-     &     myx, myxp, myy, myyp, myp, mys, onesided, lPosSS )
+     &     myx, myxp, myy, myyp, myp, mys, onesided, lPosSS, lPencOneSided )
  
       implicit none
 +ca crcoall
@@ -7321,7 +7327,7 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
 +ca dbmkdist
 
       double precision pi, iix, iiy, phix,phiy,cutoff
-      logical onesided, lPosSS
+      logical onesided, lPosSS, lPencOneSided
       
       save
 !
@@ -7350,7 +7356,7 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
  887        continue
             myemitx = myemitx0*(mynex+(dble(rndm4())*mdex))**2  
             xsigmax = sqrt(mybetax*myemitx)
-            if ( onesided ) then
+            if ( lPencOneSided ) then
                if ( lPosSS ) then
                   myx(j)   = xsigmax * sin( pi*dble(rndm4()))
                else
@@ -7377,7 +7383,7 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
  886        continue
             myemity = myemity0*(myney+(dble(rndm4())*mdey))**2  
             ysigmay = sqrt(mybetay*myemity)
-            if ( onesided ) then
+            if ( lPencOneSided ) then
                if ( lPosSS ) then
                   myy(j)   = ysigmay * sin( pi*dble(rndm4()))
                else
