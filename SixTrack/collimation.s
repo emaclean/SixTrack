@@ -508,7 +508,8 @@
 !              increase tilt angle by 180deg, as in specs
 !                of one-sided collimators
                db_rotation(j)=db_rotation(j)+pi
-               write(lout,*)"    --> negative jaw!",db_rotation(j)
+               write(lout,*)"    --> negative jaw! - tot skew angle: ",
+     &           db_rotation(j),' rad'
             endif
          endif
       enddo
@@ -539,7 +540,8 @@
 !                       CollDB as negative
                      if(.not.db_onesided(j).or.db_lPosSS(j))then
                         db_rotation(j)=db_rotation(j)+pi
-                        write(lout,*)"    --> negative jaw!",db_rotation(j)
+               write(lout,*)"    --> negative jaw! - tot skew angle: ",
+     &           db_rotation(j),' rad'
                      endif
                   endif
                endif
@@ -7332,7 +7334,8 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
 
       subroutine makedis_coll(mynp,myalphax, myalphay, mybetax, mybetay,&
      &     myemitx0, myemity0, myenom, mynex, mdex, myney, mdey,        &
-     &     myx, myxp, myy, myyp, myp, mys, onesided, lPosSS, lPencOneSided )
+     &     myx, myxp, myy, myyp, myp, mys, onesided, lPosSS,            &
+     &      lPencOneSided )
  
       implicit none
 +ca crcoall
@@ -9214,7 +9217,7 @@ c$$$     &           myalphay * cos(phiy))
       write(lout,*) 'number of collimators = ',db_ncoll
 !     write(*,*) 'ios = ',ios
       if (ios.ne.0) then
-        write(outlun,*) 'ERR>  Problem reading collimator DB ',ios
+        write(lout,*) 'ERR>  Problem reading collimator DB ',ios
         call prror(-1)
       endif
       if (db_ncoll.gt.max_ncoll) then
@@ -9238,58 +9241,58 @@ c$$$     &           myalphay * cos(phiy))
         read(53,*,iostat=ios) db_name1(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
         endif
 !
         read(53,*,iostat=ios) db_name2(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
         endif
 !
         read(53,*,iostat=ios) db_nsig(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
         endif
 !GRD
         read(53,*,iostat=ios) db_material(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
         endif
         read(53,*,iostat=ios) db_length(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
         endif
         read(53,*,iostat=ios) db_rotation(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
         endif
         read(53,*,iostat=ios) db_offset(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
         endif
         read(53,*,iostat=ios) db_bx(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
         endif
         read(53,*,iostat=ios) db_by(j)
 !        write(*,*) 'ios = ',ios
         if (ios.ne.0) then
-          write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
+          write(lout,*) 'ERR>  Problem reading collimator DB ', j,ios
           call prror(-1)
        endif
        
@@ -9299,8 +9302,8 @@ c$$$     &           myalphay * cos(phiy))
 !              if(db_name1(icoll)(1:4).eq.'TCDQ' ) onesided = .true.
 ! to treat all collimators onesided 
 ! -> only for worst case TCDQ studies
-       if(db_name1(icoll)(1:4).eq.'TCDQ'.or. &
-     &    db_name1(icoll)(1:5).eq.'TCXRP') then
+       if(db_name1(j)(1:4).eq.'TCDQ'.or.
+     &    db_name1(j)(1:5).eq.'TCXRP') then
           db_onesided(j)=.true.
           db_lPosSS(j)=.true.
        endif
@@ -9308,36 +9311,41 @@ c$$$     &           myalphay * cos(phiy))
              
 !       A.Mereghetti, 2017-12-11
 !       read new DB lines, structured as: ^keyword: value
-        read(53,*,iostat=ios) tmpLine
-        if (ios.ne.0) then
-           write(outlun,*) 'ERR>  Problem reading collimator DB ', j,ios
-           write(outlun,*) 'ERR>  Problem with line: ',tmpLine
-           call prror(-1)
-        endif
-!       A.Mereghetti, 2017-12-11
-!       read one-sided collimator seting
-        if(tmpLine(1:7).eq.'SINGLE:') then
-           call getfields_split( tmpLine, getfields_fields, getfields_lfields,
-     &          getfields_nfields, getfields_lerr )
-           if ( getfields_lerr ) then
-              write(outlun,*) 'ERR>  Problem with line: ',tmpLine
+        do while(tmpLine(1:1).ne.'#')
+           read(53,'(132A)',iostat=ios,end=1982) tmpLine
+           if (ios.ne.0) then
+              write(lout,*)'ERR>  Problem reading collimator DB ',j,ios
+              write(lout,*)'ERR>  Problem with line: ',tmpLine
               call prror(-1)
            endif
-           db_onesided(j)=.true.
-           if ( getfields_nfields.eq.1 ) then
-              db_lPosSS(j)=.true.
-           elseif (getfields_fields(2)(1:3).eq.'POS') then
-              db_lPosSS(j)=.true.
-           elseif (getfields_fields(2)(1:3).eq.'NEG') then
-              db_lPosSS(j)=.false.
-           else
-              write(outlun,*) 'ERR>  Problem with line: ',tmpLine
+!          A.Mereghetti, 2017-12-11
+!          read one-sided collimator seting
+           if(tmpLine(1:7).eq.'SINGLE:') then
+              call getfields_split( tmpLine, getfields_fields,
+     &         getfields_lfields, getfields_nfields, getfields_lerr )
+              if ( getfields_lerr ) then
+                 write(lout,*) 'ERR>  Problem with line: ',tmpLine
+                 call prror(-1)
+              endif
+              db_onesided(j)=.true.
+              if ( getfields_nfields.eq.1 ) then
+                 db_lPosSS(j)=.true.
+              elseif (getfields_fields(2)(1:3).eq.'POS') then
+                 db_lPosSS(j)=.true.
+              elseif (getfields_fields(2)(1:3).eq.'NEG') then
+                 db_lPosSS(j)=.false.
+              else
+                 write(lout,*) 'ERR>  Problem with line: ',tmpLine
+                 call prror(-1)
+              endif
+           elseif(tmpLine(1:1).ne.'#') then
+              write(lout,*) 'ERR>  Problem with line: ',tmpLine
               call prror(-1)
            endif
-        endif
+        enddo
       enddo
 !
-      close(53)
+ 1982 close(53)
 !
       end
 
