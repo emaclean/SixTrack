@@ -725,8 +725,8 @@
         if (firstrun) then
           write(46,'(a)') '# 1=name 2=turn 3=s'
           write(47,'(a)') '# 1=name 2=turn 3=s'
-          write(48,'(a)')                                               &
-     &'# 1=icoll 2=c_rotation 3=s 4=x 5=xp 6=y 7=yp 8=nabs 9=np 10=turn'
+          write(48,'(a)') '# 1=icoll 2=c_rotation 3=s 4=x 5=xp 6=y '//
+     &'7=yp 8=nabs 9=np 10=turn 11=dpop'
           write(39,*)                                                   &
      &     '%1=name,2=iturn, 3=icoll, 4=nabs, 5=s_imp[m], 6=s_out[m], ',&
      &     '7=x_in(b!)[m], 8=xp_in, 9=y_in, 10=yp_in, ',                &
@@ -2519,11 +2519,12 @@
           if(part_abs_pos(j).ne.0 .and. part_abs_turn(j).ne.0) then
             if(dowrite_impact) then
 !! FLUKA_impacts.dat
-      write(48,'(i4,(1x,f6.3),(1x,f8.6),4(1x,e19.10),i2,2(1x,i7))')     &
+               write(48,                                                &
+     &'(i4,(1x,f6.3),(1x,f8.6),4(1x,e19.10),i2,2(1x,i7),1x,e19.10)')    &
      &icoll,c_rotation,                                                 &
      &0.0,                                                              &!hr09
      &0.0,0.0,0.0,0.0,                                                  &
-     &part_abs(j),flukaname(j),iturn  !!! TODO -  It should not be part_abs here.
+     &part_abs(j),flukaname(j),iturn,0.0  !!! TODO -  It should not be part_abs here.
               endif
 
             part_abs_pos(j)  = ie
@@ -4898,11 +4899,12 @@
 
 !     SR, 29-08-2005: Include the slice numer!
               if(dowrite_impact) then
-      write(48,'(i4,(1x,f6.3),(1x,f8.6),4(1x,e19.10),i2,2(1x,i7))')     &
+                 write(48,
+     &'(i4,(1x,f6.3),(1x,f8.6),4(1x,e19.10),i2,2(1x,i7),1x,e19.10)')    &
      &icoll,c_rotation,                                                 &
-     &sInt + sp + (dble(j_slices)-1d0) * c_length,                         &!hr09
+     &sInt + sp + (dble(j_slices)-1d0) * c_length,                      &!hr09
      &x_flk*1d3, xp_flk*1d3, y_flk*1d3, yp_flk*1d3,                     &
-     &nabs,name(j),iturn
+     &nabs,name(j),iturn,dpop
               endif
 !
 !     Finally, the actual coordinate change to 99 mm
@@ -5633,10 +5635,11 @@ c$$$          endif
                   yp_flk = -1d0*zp
 !NOW WE CAN WRITE THE COORDINATES OF THE LOST PARTICLES
               if(dowrite_impact) then
-      write(48,'(i4,(2x,f5.3),(2x,f8.6),4(1x,e16.7),2x,i2,2x,i5)')      &
+                 write(48,
+     &'(i4,(1x,f6.3),(1x,f8.6),4(1x,e19.10),i2,2(1x,i7),1x,e19.10)')    &
      &icoll,c_rotation,s+sp,                                            &
      &x_flk*1d3, xp_flk*1d3, y_flk*1d3, yp_flk*1d3,                     &
-     &nabs,name(j)
+     &nabs,name(j),dpop
               endif
 !APRIL2005
               fracab = fracab + 1
