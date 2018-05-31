@@ -2103,6 +2103,11 @@
              write(7878,*) napx,myalphax,myalphay, mybetax, mybetay,
      &            myemitx0_collgap, myemity0_collgap,
      &            myenom, mynex2, mdex, myney2,mdey
+             ! more debugging output (AMereghetti, 2018-05-31)
+!             write(7878,*) 1,alphax1,alphay1,betax1,betay1
+!             write(7878,*) 2,alphax2,alphay2,betax2,betay2
+!             write(7878,*) 0,talphax(ie),talphay(ie),tbetax(ie),
+!     &tbetay(ie)
 
 !     create new pencil beam distribution with spread at start or end of collimator at the minAmpl
 !     note: if imperfections are active, equal amounts of particles are still generated on the two jaws.
@@ -2541,6 +2546,12 @@
 !      write(lout,*) 'COLLIMATOR LOSSES ', db_name1(icoll), g4_lostc
 +ei
 +if .not.g4collimat
+        ! some debugging output (AMereghetti, 2018-05-31)
+!                   write(*,*) '--> call to collimate2 at ',              &
+!      & db_name1(icoll),icoll,' at turn ',iturn
+!                   write(*,*) ' collimator characteristics:',            &
+!      &lPencOneSided, onesided, lPosSS, do_oneside, c_length, c_rotation,&
+!      &         c_aperture, nom_aperture, c_offset, c_tilt(1), c_tilt(2)
                   call collimate2(c_material, c_length, c_rotation,     &
      &                 c_aperture, c_offset, c_tilt,                    &
      &                 rcx, rcxp, rcy, rcyp,                            &
@@ -4493,7 +4504,14 @@
 !++  For one-sided collimators consider only positive X. For negative
 !++  X jump to the next particle
 !
-          if (onesided .and. x.lt.0d0) goto 777
+          if (onesided .and. x.lt.0d0) then
+             ! debugging output (AMereghetti, 2018-05-31)
+             ! if(icoll.eq.29) write(*,*)'skip particle',name(j),x,iturn
+             goto 777
+             ! debugging output (AMereghetti, 2018-05-31)
+!           else
+!              if(icoll.eq.29) write(*,*)'keep particle',name(j),x,iturn
+          endif
 !
 !++  Now mirror at the horizontal axis for negative X offset
 !
@@ -4744,6 +4762,9 @@
 !
 !++  Now do the scattering part
 !
+          ! debugging output  (AMereghetti, 2018-05-31)
+!           write(*,*) '--> before call to jaw',name(j),x,xp,z,zp,sp,     &
+!      &           icoll, iturn, drift_length
           if (zlm.gt.0.) then
 !JUNE2005
             s_impact = sp
