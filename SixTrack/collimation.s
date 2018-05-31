@@ -2118,7 +2118,7 @@
      &            myemitx0_collgap, myemity0_collgap,
      &            myenom, mynex2, mdex, myney2,mdey,
      &            myx, myxp, myy, myyp, myp, mys, onesided, lPosSS_loc,
-     &            lPencOneSided )
+     &            lPencOneSided, db_rotation(icoll) )
              
              do j = 1, napx
                 xv(1,j)  = 1d3*myx(j)  + torbx(ie) 
@@ -7359,14 +7359,14 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
       subroutine makedis_coll(mynp,myalphax, myalphay, mybetax, mybetay,&
      &     myemitx0, myemity0, myenom, mynex, mdex, myney, mdey,        &
      &     myx, myxp, myy, myyp, myp, mys, onesided, lPosSS,            &
-     &      lPencOneSided )
+     &      lPencOneSided, rot_deg )
  
       implicit none
 +ca crcoall
 +ca collpara
 +ca dbmkdist
 
-      double precision pi, iix, iiy, phix,phiy,cutoff
+      double precision pi, iix, iiy, phix,phiy,cutoff, rot_deg
       logical onesided, lPosSS, lPencOneSided
       
       save
@@ -7397,7 +7397,8 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
             myemitx = myemitx0*(mynex+(dble(rndm4())*mdex))**2  
             xsigmax = sqrt(mybetax*myemitx)
             if ( lPencOneSided ) then
-               if ( lPosSS ) then
+               if ( (lPosSS.and.cos(rot_deg/180d0*pi).gt.0d0) .or.      &
+     &              (.not.lPosSS.and.cos(rot_deg/180d0*pi).lt.0d0) )then
                   myx(j)   = xsigmax * sin( pi*dble(rndm4()))
                else
                   myx(j)   = xsigmax * sin(-pi*dble(rndm4()))
@@ -7424,7 +7425,8 @@ c      write(*,*)cs_tail,prob_tail,ranc,EnLo*DZ
             myemity = myemity0*(myney+(dble(rndm4())*mdey))**2  
             ysigmay = sqrt(mybetay*myemity)
             if ( lPencOneSided ) then
-               if ( lPosSS ) then
+               if ( (lPosSS.and.sin(rot_deg/180d0*pi).gt.0d0) .or.      &
+     &              (.not.lPosSS.and.sin(rot_deg/180d0*pi).lt.0d0) )then
                   myy(j)   = ysigmay * sin( pi*dble(rndm4()))
                else
                   myy(j)   = ysigmay * sin(-pi*dble(rndm4()))
